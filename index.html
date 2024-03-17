@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebRTC File Sharing</title>
+</head>
+<body>
+    <h2>Session Control</h2>
+    <button id="createSessionBtn">Create Session</button>
+    <input type="text" id="sessionIdInput" placeholder="Session ID">
+    <button id="joinSessionBtn">Join Session</button>
+
+    <h2>Chat</h2>
+    <div id="chatBox" style="border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; height: 200px; overflow-y: scroll;"></div>
+    <input type="text" id="messageInput" placeholder="Type your message">
+    <button id="sendBtn">Send</button>
+
+    <script>
+        const createSessionBtn = document.getElementById('createSessionBtn');
+        const joinSessionBtn = document.getElementById('joinSessionBtn');
+        const sessionIdInput = document.getElementById('sessionIdInput');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const chatBox = document.getElementById('chatBox');
+        let localConnection;
+        let sendChannel;
+        let ws;
+        let sessionId = null;
+
+        createSessionBtn.onclick = () => {
+            ws = new WebSocket('ws://98.240.101.68:3000');
+            ws.onmessage = handleMessage;
+            ws.onopen = () => {
+                ws.send(JSON.stringify({ type: 'create' }));
+            };
+        };
+
+        joinSessionBtn.onclick = () => {
+            const id = sessionIdInput.value.trim();
+            sessionId = id;
+            if (id) {
+                ws = new WebSocket('ws://98.240.101.68:3000');
+                ws.onmessage = handleMessage;
+                ws.onopen = () => {
+                    ws.send(JSON.stringify({ type: 'join', id: id }));
+                };
+            }
+        };
+
+        sendBtn.onclick = () => {
+            const message = messageInput.value.trim();
+            if (message) {
+                ws.send(JSON.stringify({ type: 'message', id: sessionId, message: message }));
+                messageInput.value = '';
+            }
+        };
+
+        function handleMessage(event) {
+            const data = JSON.parse(event.data);
+            switch (data.type) {
+                case 'created':
+                    console.log('Session created with ID:', data.id);
+                    sessionId = data.id;
+                    sessionIdInput.value = data.id;
+                    setupWebRTC(true);
+                    break;
+                case 'joined':
+                    console.log('Peer joined the session');
+                    setupWebRTC(false);
+                    break;
+                case 'message':
+                    displayMessage(data.message);
+                    break;
+                case 'offer':
+                    handleOffer(data.offer, data.id);
+                    break;
+                case 'answer':
+                    handleAnswer(data.answer);
+                    break;
+                case 'candidate':
+                    if (localConnection) {
+                        localConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                    }
+                    break;
+                default:
+                    console.log('Unknown message type:', data.type);
+            }
+        }
+
+        function displayMessage(message) {
+            const p = document.createElement('p');
+            p.textContent = message;
+            chatBox.appendChild(p);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function setupWebRTC(isInitiator) {
+    const configuration = { "iceServers": [{ "urls": "stun:stun.l.google.com:19302" }] };
+    localConnection = new RTCPeerConnection(configuration);
+
+    // Event handler for ICE candidates
+    localConnection.onicecandidate = event => {
+        if (event.candidate) {
+            ws.send(JSON.stringify({
+                type: 'candidate',
+                candidate: event.candidate,
+                id: sessionId
+            }));
+        }
+    };
+
+    if (isInitiator) {
+        // Create data channel and set up its event listeners
+        sendChannel = localConnection.createDataChannel("sendChannel");
+        sendChannel.onopen = handleSendChannelStatusChange;
+        sendChannel.onclose = handleSendChannelStatusChange;
+
+        // Create an offer
+        localConnection.createOffer().then(offer => {
+            localConnection.setLocalDescription(offer);
+            ws.send(JSON.stringify({
+                type: 'offer',
+                offer: offer,
+                id: sessionId
+            }));
+        }).catch(error => console.error('Failed to create offer:', error));
+    } else {
+        // Handle data channel creation from the initiator
+        localConnection.ondatachannel = event => {
+            sendChannel = event.channel;
+            sendChannel.onopen = handleSendChannelStatusChange;
+            sendChannel.onclose = handleSendChannelStatusChange;
+        };
+    }
+}
+
+function handleSendChannelStatusChange(event) {
+    if (sendChannel) {
+        const state = sendChannel.readyState;
+
+        if (state === "open") {
+            console.log("Data channel is open");
+        } else {
+            console.log("Data channel is closed");
+        }
+    }
+}
+
+function handleOffer(offer, id) {
+    localConnection.setRemoteDescription(new RTCSessionDescription(offer)).then(() => {
+        return localConnection.createAnswer();
+    }).then(answer => {
+        localConnection.setLocalDescription(answer);
+        ws.send(JSON.stringify({
+            type: 'answer',
+            answer: answer,
+            id: id
+        }));
+    }).catch(error => console.error('Error creating answer:', error));
+}
+
+function handleAnswer(answer) {
+    localConnection.setRemoteDescription(new RTCSessionDescription(answer))
+    .catch(error => console.error('Error setting remote description:', error));
+}
+
+    </script>
+</body>
+</html>
+
+
+
+
+
+        <!-- // Other functions (setupWebRTC, handleOffer, handleAnswer) remain unchanged... -->
+
+
+
+
+
+
+<!-- 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebRTC Chat</title>
+</head>
+<body>
+    <h2>Session Control</h2>
+    <button id="createSessionBtn">Create Session</button>
+    <input type="text" id="sessionIdInput" placeholder="Session ID">
+    <button id="joinSessionBtn">Join Session</button>
+
+    <h2>Chat</h2>
+    <div id="chatBox" style="border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; height: 200px; overflow-y: scroll;"></div>
+    <input type="text" id="messageInput" placeholder="Type your message">
+    <button id="sendBtn">Send</button>
+
+    <script>
+        const createSessionBtn = document.getElementById('createSessionBtn');
+        const joinSessionBtn = document.getElementById('joinSessionBtn');
+        const sessionIdInput = document.getElementById('sessionIdInput');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const chatBox = document.getElementById('chatBox');
+        let localConnection;
+        let sendChannel;
+        let ws;
+        let sessionId = null;
+
+        createSessionBtn.onclick = () => {
+            ws = new WebSocket('ws://localhost:3000');
+            ws.onmessage = handleMessage;
+            ws.onopen = () => {
+                ws.send(JSON.stringify({ type: 'create' }));
+            };
+        };
+
+        joinSessionBtn.onclick = () => {
+            const id = sessionIdInput.value.trim();
+            sessionId = id;
+            if (id) {
+                ws = new WebSocket('ws://localhost:3000');
+                ws.onmessage = handleMessage;
+                ws.onopen = () => {
+                    ws.send(JSON.stringify({ type: 'join', id: id }));
+                };
+            }
+        };
+
+        sendBtn.onclick = () => {
+    const message = messageInput.value.trim();
+    if (message && sendChannel && sendChannel.readyState === 'open') {
+        sendChannel.send(message);
+        displayMessage(message, 'You');
+        messageInput.value = '';
+    } else {
+        console.log('Data channel is not open. Message not sent.');
+    }
+};
+
+
+        function setupWebRTC(isInitiator) {
+            localConnection = new RTCPeerConnection();
+
+            localConnection.onicecandidate = event => {
+                if (event.candidate) {
+                    ws.send(JSON.stringify({ type: 'candidate', id: sessionId, candidate: event.candidate }));
+                }
+            };
+
+            if (isInitiator) {
+    sendChannel = localConnection.createDataChannel("sendChannel");
+    sendChannel.onopen = () => {
+        console.log("Data channel open");
+        // Enable your send button or notify the user that they can now send messages
+        sendBtn.disabled = false;
+    };
+    sendChannel.onmessage = e => displayMessage(e.data, 'Peer');
+} else {
+    localConnection.ondatachannel = event => {
+        sendChannel = event.channel;
+        sendChannel.onmessage = e => displayMessage(e.data, 'Peer');
+        sendChannel.onopen = () => {
+            console.log("Data channel open");
+            // Enable your send button or notify the user that they can now send messages
+            sendBtn.disabled = false;
+        };
+    };
+}
+
+
+            if (isInitiator) {
+                localConnection.createOffer().then(offer => {
+                    localConnection.setLocalDescription(offer);
+                    ws.send(JSON.stringify({ type: 'offer', id: sessionId, offer: offer }));
+                }).catch(handleError);
+            }
+        }
+
+        function handleOffer(offer, id) {
+            localConnection.setRemoteDescription(new RTCSessionDescription(offer));
+            localConnection.createAnswer().then(answer => {
+                localConnection.setLocalDescription(answer);
+                ws.send(JSON.stringify({ type: 'answer', id: id, answer: answer }));
+            }).catch(handleError);
+        }
+
+        function handleAnswer(answer) {
+            localConnection.setRemoteDescription(new RTCSessionDescription(answer));
+        }
+
+        function handleCandidate(candidate) {
+            localConnection.addIceCandidate(new RTCIceCandidate(candidate)).catch(handleError);
+        }
+
+        function handleError(error) {
+            console.error('An error occurred:', error);
+        }
+
+        function handleMessage(event) {
+            const data = JSON.parse(event.data);
+            switch (data.type) {
+                case 'created':
+                    console.log('Session created with ID:', data.id);
+                    sessionId = data.id;
+                    sessionIdInput.value = data.id;
+                    setupWebRTC(true);
+                    break;
+                case 'joined':
+                    console.log('Peer joined the session');
+                    setupWebRTC(false);
+                    break;
+                case 'message':
+                    displayMessage(data.message, 'Peer');
+                    break;
+                case 'offer':
+                    handleOffer(data.offer, data.id);
+                    break;
+                case 'answer':
+                    handleAnswer(data.answer);
+                    break;
+                case 'candidate':
+                    handleCandidate(data.candidate);
+                    break;
+                default:
+                    console.log('Unknown message type:', data.type);
+            }
+        }
+
+        function displayMessage(message, sender) {
+            const p = document.createElement('p');
+            p.textContent = `${sender}: ${message}`;
+            chatBox.appendChild(p);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // Log peer connection state changes
+localConnection.onconnectionstatechange = function(event) {
+    console.log(`Connection state change: ${localConnection.connectionState}`);
+};
+
+// Log data channel status
+sendChannel.onopen = () => {
+    console.log("Data channel open");
+    sendBtn.disabled = false; // Enable send button
+};
+sendChannel.onclose = () => {
+    console.log("Data channel closed");
+};
+
+// Add similar logs for ICE connection state and gathering state
+localConnection.oniceconnectionstatechange = function(event) {
+    console.log(`ICE connection state change: ${localConnection.iceConnectionState}`);
+};
+localConnection.onicegatheringstatechange = function(event) {
+    console.log(`ICE gathering state change: ${localConnection.iceGatheringState}`);
+};
+
+    </script>
+</body>
+</html> -->
