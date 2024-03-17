@@ -29,7 +29,7 @@
 
         createSessionBtn.onclick = () => {
             //ws = new WebSocket('wss://98.240.101.68:3000');
-            ws = new WebSocket('wss://47e1-2601-483-900-3ad0-00-c587.ngrok-free.app');
+            ws = new WebSocket('wss://47e1-2601-483-900-3ad0-00-c587.ngrok-free.app:8080');
             ws.onmessage = handleMessage;
             ws.onopen = () => {
                 ws.send(JSON.stringify({ type: 'create' }));
