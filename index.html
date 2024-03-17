@@ -28,9 +28,7 @@
         let sessionId = null;
 
         createSessionBtn.onclick = () => {
-            //ws = new WebSocket('wss://98.240.101.68:3000');
-            //ws = new WebSocket('wss://47e1-2601-483-900-3ad0-00-c587.ngrok-free.app');
-            ws = new WebSocket('wss://lemon-phones-serve.loca.lt');
+            ws = new WebSocket('wss://evil-cats-bake.loca.lt');
             ws.onmessage = handleMessage;
             ws.onopen = () => {
                 ws.send(JSON.stringify({ type: 'create' }));
@@ -41,9 +39,7 @@
             const id = sessionIdInput.value.trim();
             sessionId = id;
             if (id) {
-                //ws = new WebSocket('wss://98.240.101.68:3000');
-                //ws = new WebSocket('wss://47e1-2601-483-900-3ad0-00-c587.ngrok-free.app');
-                ws = new WebSocket('wss://lemon-phones-serve.loca.lt');
+                ws = new WebSocket('wss://evil-cats-bake.loca.lt');
                 ws.onmessage = handleMessage;
                 ws.onopen = () => {
                     ws.send(JSON.stringify({ type: 'join', id: id }));
