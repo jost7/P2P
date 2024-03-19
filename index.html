@@ -28,7 +28,7 @@
         let sessionId = null;
 
         createSessionBtn.onclick = () => {
-            ws = new WebSocket('wss://mean-shoes-allow');
+            ws = new WebSocket('wss://mean-shoes-allow.loca.lt');
             ws.onmessage = handleMessage;
             ws.onopen = () => {
                 ws.send(JSON.stringify({ type: 'create' }));
@@ -39,7 +39,7 @@
             const id = sessionIdInput.value.trim();
             sessionId = id;
             if (id) {
-                ws = new WebSocket('wss://mean-shoes-allow');
+                ws = new WebSocket('wss://mean-shoes-allow.loca.lt');
                 ws.onmessage = handleMessage;
                 ws.onopen = () => {
                     ws.send(JSON.stringify({ type: 'join', id: id }));
