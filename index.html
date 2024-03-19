@@ -28,7 +28,7 @@
         let sessionId = null;
 
         createSessionBtn.onclick = () => {
-            ws = new WebSocket('wss://fluffy-apples-stare.loca.lt');
+            ws = new WebSocket('wss://mean-shoes-allow');
             ws.onmessage = handleMessage;
             ws.onopen = () => {
                 ws.send(JSON.stringify({ type: 'create' }));
@@ -39,7 +39,7 @@
             const id = sessionIdInput.value.trim();
             sessionId = id;
             if (id) {
-                ws = new WebSocket('wss://fluffy-apples-stare.loca.lt');
+                ws = new WebSocket('wss://mean-shoes-allow');
                 ws.onmessage = handleMessage;
                 ws.onopen = () => {
                     ws.send(JSON.stringify({ type: 'join', id: id }));
